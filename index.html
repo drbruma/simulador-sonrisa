@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Sonrisa - Ortodoncia</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f4f6f8;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 650px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            color: #1e293b;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .upload-section {
+            border: 2px dashed #cbd5e1;
+            padding: 25px;
+            text-align: center;
+            border-radius: 8px;
+            background: #f8fafc;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .upload-section:hover {
+            background: #f1f5f9;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .btn-select {
+            background: #0284c7;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-block;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .image-container {
+            position: relative;
+            width: 100%;
+            display: none;
+            margin-top: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .image-container img {
+            width: 100%;
+            display: block;
+        }
+
+        .simulated-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: contrast(1.05) brightness(1.02);
+            clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+            transition: clip-path 0.05s ease-out;
+        }
+
+        .slider-control {
+            margin-top: 20px;
+            display: none;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #475569;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            outline: none;
+        }
+
+        .instructions {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Simulador de Tratamiento Dental</h1>
+
+    <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+        <p id="uploadText">Haz clic para subir una foto de la sonrisa</p>
+        <div class="btn-select">Seleccionar Imagen</div>
+        <input type="file" id="fileInput" accept="image/*" onchange="loadImages(event)">
+    </div>
+
+    <div class="image-container" id="imgContainer">
+        <img id="originalImg" src="" alt="Sonrisa Original">
+        <img id="simulatedImg" class="simulated-overlay" src="" alt="Sonrisa Simulada">
+    </div>
+
+    <div class="slider-control" id="sliderGroup">
+        <label for="comparisonSlider">Comparar Antes y Después (Mueve la barra):</label>
+        <input type="range" id="comparisonSlider" min="0" max="100" value="50" oninput="updateComparison(this.value)">
+    </div>
+
+    <p class="instructions">Sube una fotografía clara en vista frontal para la simulación.</p>
+</div>
+
+<script>
+    function loadImages(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const originalImg = document.getElementById('originalImg');
+            const simulatedImg = document.getElementById('simulatedImg');
+            const imgContainer = document.getElementById('imgContainer');
+            const sliderGroup = document.getElementById('sliderGroup');
+            const uploadText = document.getElementById('uploadText');
+
+            originalImg.src = e.target.result;
+            simulatedImg.src = e.target.result;
+
+            imgContainer.style.display = 'block';
+            sliderGroup.style.display = 'block';
+            uploadText.innerText = "Cambiar imagen seleccionada";
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function updateComparison(val) {
+        const simulatedImg = document.getElementById('simulatedImg');
+        simulatedImg.style.clipPath = `polygon(0 0, ${val}% 0, ${val}% 100%, 0 100%)`;
+    }
+</script>
+
+</body>
+</html>
