@@ -9,15 +9,22 @@
         body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
         .app-card { background: #1e293b; border-radius: 16px; width: 100%; max-width: 480px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
         h2 { font-size: 1.25rem; margin-bottom: 8px; color: #38bdf8; }
-        p.subtitle { font-size: 0.9rem; color: #94a3b8; margin-bottom: 16px; }
+        p.subtitle { font-size: 0.88rem; color: #94a3b8; margin-bottom: 16px; min-height: 38px; }
+        
         .camera-container { position: relative; width: 100%; aspect-ratio: 3/4; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         video, canvas { width: 100%; height: 100%; object-fit: cover; }
         
-        /* Guias visuales */
-        .overlay-guide { position: absolute; border: 2px dashed rgba(56, 189, 248, 0.7); pointer-events: none; transition: all 0.3s ease; }
-        .guide-face { width: 65%; height: 60%; border-radius: 50%; top: 15%; }
-        .guide-smile { width: 75%; height: 45%; border-radius: 40%; top: 25%; }
-        .guide-teeth { width: 70%; height: 25%; border-radius: 12px; top: 35%; }
+        /* Guias visuales ajustadas */
+        .overlay-guide { position: absolute; border: 3px dashed #38bdf8; pointer-events: none; transition: all 0.3s ease; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.45); }
+        
+        /* 1. Rostro completo */
+        .guide-face { width: 60%; height: 60%; border-radius: 50%; top: 15%; }
+        
+        /* 2. Sonrisa (Zona boca/labios) */
+        .guide-smile { width: 50%; height: 22%; border-radius: 35px; top: 40%; border-color: #4ade80; }
+        
+        /* 3. Dientes (Acercamiento cerrado) */
+        .guide-teeth { width: 38%; height: 14%; border-radius: 16px; top: 43%; border-color: #facc15; }
 
         .btn-group { display: flex; gap: 10px; margin-top: 16px; }
         button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
@@ -26,15 +33,15 @@
         .btn-secondary { background: #334155; color: #f8fafc; }
         
         .preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
-        .preview-item { background: #0f172a; border-radius: 8px; padding: 5px; font-size: 0.75rem; text-align: center; }
+        .preview-item { background: #0f172a; border-radius: 8px; padding: 5px; font-size: 0.75rem; text-align: center; color: #94a3b8; }
         .preview-item img { width: 100%; height: 70px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
 <div class="app-card">
-    <h2 id="stepTitle">Paso 1: Rostro Reposo</h2>
-    <p class="subtitle" id="stepInstruction">Alinea la cara completa dentro de la guía en posición relajada.</p>
+    <h2 id="stepTitle">Paso 1: Rostro en Reposo</h2>
+    <p class="subtitle" id="stepInstruction">Centra tu rostro completo dentro del óvalo sin sonreír.</p>
 
     <div class="camera-container">
         <video id="webcam" autoplay playsinline></video>
@@ -67,9 +74,9 @@
 <script>
     let currentStep = 1;
     const steps = [
-        { title: "Paso 1: Rostro Reposo", instruction: "Ubica la cara dentro de la guía sin sonreír.", guideClass: "guide-face" },
-        { title: "Paso 2: Sonrisa Completa", instruction: "Sonríe naturalmente mostrando tus dientes dentro del recuadro.", guideClass: "guide-smile" },
-        { title: "Paso 3: Acercamiento a Dientes", instruction: "Acerca la cámara para encuadrar la arcada dental.", guideClass: "guide-teeth" }
+        { title: "Paso 1: Rostro en Reposo", instruction: "Centra tu rostro completo dentro del óvalo sin sonreír.", guideClass: "guide-face" },
+        { title: "Paso 2: Sonrisa Completa", instruction: "Sonríe naturalmente y ubica tu boca dentro del recuadro verde.", guideClass: "guide-smile" },
+        { title: "Paso 3: Acercamiento a Dientes", instruction: "Acerca la cámara hasta enfocar únicamente la zona de los dientes dentro del recuadro amarillo.", guideClass: "guide-teeth" }
     ];
 
     const video = document.getElementById('webcam');
@@ -79,7 +86,9 @@
 
     async function startCamera() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } 
+            });
             video.srcObject = stream;
         } catch (err) {
             alert("No se pudo acceder a la cámara. Por favor concede los permisos en el navegador.");
@@ -106,7 +115,7 @@
             currentStep++;
             updateStepUI();
         } else {
-            alert("¡Capturas completadas! Preparando simulación...");
+            alert("¡Capturas completadas exitosamente!");
         }
     }
 
