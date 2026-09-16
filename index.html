@@ -29,9 +29,10 @@
         .preview-item { background: #0f172a; border-radius: 8px; padding: 5px; font-size: 0.75rem; text-align: center; color: #94a3b8; }
         .preview-item img { width: 100%; height: 75px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 4px; background: #1e293b; }
 
-        #loadingView { display: none; padding: 40px 10px; }
+        #loadingView { display: none; padding: 30px 10px; }
         .spinner { width: 50px; height: 50px; border: 4px solid #334155; border-top: 4px solid #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error-box { background: #450a0a; border: 1px solid #ef4444; color: #fca5a5; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 0.85rem; word-break: break-word; }
 
         #simulationView { display: none; margin-top: 15px; }
         .sim-container { position: relative; width: 100%; aspect-ratio: 3/4; border-radius: 12px; overflow: hidden; background: #000; }
@@ -73,9 +74,11 @@
     </div>
 
     <div id="loadingView">
-        <div class="spinner"></div>
-        <h2>Generando tu Simulación con IA...</h2>
-        <p class="subtitle">Analizando la alineación de tus dientes y diseñando tu nueva sonrisa. Esto tomará unos segundos.</p>
+        <div id="loadingSpinner" class="spinner"></div>
+        <h2 id="loadingTitle">Generando tu Simulación...</h2>
+        <p class="subtitle" id="loadingText">Diseñando tu nueva sonrisa con IA. Esto tomará unos segundos.</p>
+        <div id="errorDetails" style="display:none;" class="error-box"></div>
+        <button id="retryBtn" style="display:none; margin-top:15px;" class="btn-secondary" onclick="resetCapture()">Volver a intentar</button>
     </div>
 
     <div id="simulationView">
@@ -125,12 +128,29 @@
 
         const vw = video.videoWidth;
         const vh = video.videoHeight;
-        canvas.width = vw;
-        canvas.height = vh;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, vw, vh);
 
-        const imgData = canvas.toDataURL('image/png');
+        // Redimensionar imagen a máximo 800px para carga ultrarrápida
+        const maxDim = 800;
+        let width = vw;
+        let height = vh;
+        if (width > height) {
+            if (width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+            }
+        } else {
+            if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+            }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, width, height);
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.8);
         captures[currentStep] = imgData;
         document.getElementById(`thumb-${currentStep}`).src = imgData;
 
@@ -152,10 +172,16 @@
     async function processWithAI() {
         document.getElementById('captureStage').style.display = 'none';
         document.getElementById('loadingView').style.display = 'block';
+        document.getElementById('loadingSpinner').style.display = 'block';
+        document.getElementById('loadingTitle').innerText = 'Generando tu Simulación...';
+        document.getElementById('loadingText').innerText = 'Diseñando tu nueva sonrisa con IA. Esto tomará unos segundos.';
+        document.getElementById('errorDetails').style.display = 'none';
+        document.getElementById('retryBtn').style.display = 'none';
 
         const smilePhoto = captures[2] || captures[1];
 
         try {
+            // 1. Enviar la foto y obtener ID de predicción
             const response = await fetch('/api/simulate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -164,15 +190,52 @@
 
             const data = await response.json();
 
-            if (data.outputUrl) {
-                showResults(smilePhoto, data.outputUrl);
-            } else {
-                throw new Error(data.error || "No se pudo generar la simulación.");
+            if (!response.ok || data.error) {
+                throw new Error(data.error || "No se pudo iniciar la simulación.");
             }
+
+            const predictionId = data.id;
+            if (!predictionId) {
+                throw new Error("No se obtuvo un ID válido de Replicate.");
+            }
+
+            // 2. Polling: Preguntar cada 1.5s hasta obtener el resultado
+            let attempts = 0;
+            const maxAttempts = 40; // Máximo ~60 segundos
+
+            while (attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                attempts++;
+
+                const checkRes = await fetch(`/api/simulate?id=${predictionId}`);
+                const checkData = await checkRes.json();
+
+                if (checkData.status === 'succeeded') {
+                    const outputUrl = Array.isArray(checkData.output) ? checkData.output[0] : checkData.output;
+                    showResults(smilePhoto, outputUrl);
+                    return;
+                }
+
+                if (checkData.status === 'failed') {
+                    throw new Error(checkData.error || "Fallo en el servidor de IA.");
+                }
+            }
+
+            throw new Error("El tiempo de procesamiento tardó más de lo esperado. Por favor reintenta.");
+
         } catch (err) {
-            alert("Error: " + err.message);
-            resetCapture();
+            showError(err.message);
         }
+    }
+
+    function showError(msg) {
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('loadingTitle').innerText = 'Ocurrió un inconveniente';
+        document.getElementById('loadingText').innerText = 'No se pudo completar la simulación.';
+        const errBox = document.getElementById('errorDetails');
+        errBox.innerText = "Detalle: " + msg;
+        errBox.style.display = 'block';
+        document.getElementById('retryBtn').style.display = 'block';
     }
 
     function showResults(originalUrl, simulatedUrl) {
@@ -182,8 +245,7 @@
         document.getElementById('imgOriginal').src = originalUrl;
         document.getElementById('imgSimulated').src = simulatedUrl;
 
-        // Puedes cambiar este número por tu número de WhatsApp real (ejemplo: 56912345678)
-        const phone = "569XXXXXXXX"; 
+        const phone = "569XXXXXXXX";
         const msg = encodeURIComponent("Hola, me tomé la foto en el simulador de sonrisa y me gustaría agendar una evaluación diagnóstica.");
         document.getElementById('whatsappBtn').href = `https://wa.me/${phone}?text=${msg}`;
     }
