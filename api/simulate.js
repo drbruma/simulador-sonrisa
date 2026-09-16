@@ -27,15 +27,14 @@ export default async function handler(req, res) {
         if (!image) return res.status(400).json({ error: 'No se recibió ninguna imagen' });
 
         try {
-            const startResponse = await fetch("https://api.replicate.com/v1/predictions", {
+            // Se usa el endpoint directo del modelo para usar la versión activa automática
+            const startResponse = await fetch("https://api.replicate.com/v1/models/timbrooks/instruct-pix2pix/predictions", {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    // Modelo oficial InstructPix2Pix (Edición de fotos por texto)
-                    version: "30c1d0b916a6f8ef220d6db3f2c303865b101b5a967823ae452c1e458af42a26",
                     input: {
                         image: image,
                         prompt: "make the teeth perfectly straight, white, aligned, beautiful smile, high-end orthodontic result",
@@ -49,7 +48,6 @@ export default async function handler(req, res) {
             const prediction = await startResponse.json();
 
             if (!startResponse.ok) {
-                // Captura el detalle exacto del error 422 de Replicate
                 const detail = prediction.detail ? JSON.stringify(prediction.detail) : (prediction.error || `HTTP ${startResponse.status}`);
                 return res.status(500).json({ error: `Replicate Error: ${detail}` });
             }
