@@ -3,179 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de Sonrisa - Ortodoncia</title>
+    <title>Captura Guiada de Sonrisa</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 15px; }
+        .app-card { background: #1e293b; border-radius: 16px; width: 100%; max-width: 480px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; }
+        h2 { font-size: 1.25rem; margin-bottom: 8px; color: #38bdf8; }
+        p.subtitle { font-size: 0.9rem; color: #94a3b8; margin-bottom: 16px; }
+        .camera-container { position: relative; width: 100%; aspect-ratio: 3/4; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        video, canvas { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Guias visuales */
+        .overlay-guide { position: absolute; border: 2px dashed rgba(56, 189, 248, 0.7); pointer-events: none; transition: all 0.3s ease; }
+        .guide-face { width: 65%; height: 60%; border-radius: 50%; top: 15%; }
+        .guide-smile { width: 75%; height: 45%; border-radius: 40%; top: 25%; }
+        .guide-teeth { width: 70%; height: 25%; border-radius: 12px; top: 35%; }
 
-        body {
-            background-color: #f4f6f8;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            background: #ffffff;
-            width: 100%;
-            max-width: 650px;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        }
-
-        h1 {
-            font-size: 1.6rem;
-            color: #1e293b;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .upload-section {
-            border: 2px dashed #cbd5e1;
-            padding: 25px;
-            text-align: center;
-            border-radius: 8px;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .upload-section:hover {
-            background: #f1f5f9;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .btn-select {
-            background: #0284c7;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            cursor: pointer;
-            display: inline-block;
-            margin-top: 10px;
-            font-weight: 500;
-        }
-
-        .image-container {
-            position: relative;
-            width: 100%;
-            display: none;
-            margin-top: 15px;
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-
-        .image-container img {
-            width: 100%;
-            display: block;
-        }
-
-        .simulated-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            filter: contrast(1.05) brightness(1.02);
-            clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
-            transition: clip-path 0.05s ease-out;
-        }
-
-        .slider-control {
-            margin-top: 20px;
-            display: none;
-        }
-
-        label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #475569;
-            display: block;
-            margin-bottom: 8px;
-        }
-
-        input[type="range"] {
-            width: 100%;
-            height: 6px;
-            border-radius: 3px;
-            background: #e2e8f0;
-            outline: none;
-        }
-
-        .instructions {
-            text-align: center;
-            font-size: 0.85rem;
-            color: #64748b;
-            margin-top: 15px;
-        }
+        .btn-group { display: flex; gap: 10px; margin-top: 16px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-primary { background: #0284c7; color: white; }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-secondary { background: #334155; color: #f8fafc; }
+        
+        .preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 15px; }
+        .preview-item { background: #0f172a; border-radius: 8px; padding: 5px; font-size: 0.75rem; text-align: center; }
+        .preview-item img { width: 100%; height: 70px; object-fit: cover; border-radius: 4px; display: block; margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>Simulador de Tratamiento Dental</h1>
+<div class="app-card">
+    <h2 id="stepTitle">Paso 1: Rostro Reposo</h2>
+    <p class="subtitle" id="stepInstruction">Alinea la cara completa dentro de la guía en posición relajada.</p>
 
-    <div class="upload-section" onclick="document.getElementById('fileInput').click()">
-        <p id="uploadText">Haz clic para subir una foto de la sonrisa</p>
-        <div class="btn-select">Seleccionar Imagen</div>
-        <input type="file" id="fileInput" accept="image/*" onchange="loadImages(event)">
+    <div class="camera-container">
+        <video id="webcam" autoplay playsinline></video>
+        <div id="guideOverlay" class="overlay-guide guide-face"></div>
     </div>
 
-    <div class="image-container" id="imgContainer">
-        <img id="originalImg" src="" alt="Sonrisa Original">
-        <img id="simulatedImg" class="simulated-overlay" src="" alt="Sonrisa Simulada">
+    <div class="btn-group">
+        <button class="btn-secondary" onclick="startCamera()">Activar Cámara</button>
+        <button class="btn-primary" onclick="captureStep()">Tomar Foto</button>
     </div>
 
-    <div class="slider-control" id="sliderGroup">
-        <label for="comparisonSlider">Comparar Antes y Después (Mueve la barra):</label>
-        <input type="range" id="comparisonSlider" min="0" max="100" value="50" oninput="updateComparison(this.value)">
+    <div class="preview-grid">
+        <div class="preview-item">
+            <img id="thumb-1" src="https://via.placeholder.com/150?text=Rostro" alt="Rostro">
+            Rostro
+        </div>
+        <div class="preview-item">
+            <img id="thumb-2" src="https://via.placeholder.com/150?text=Sonrisa" alt="Sonrisa">
+            Sonrisa
+        </div>
+        <div class="preview-item">
+            <img id="thumb-3" src="https://via.placeholder.com/150?text=Dientes" alt="Dientes">
+            Dientes
+        </div>
     </div>
-
-    <p class="instructions">Sube una fotografía clara en vista frontal para la simulación.</p>
 </div>
 
+<canvas id="captureCanvas" style="display:none;"></canvas>
+
 <script>
-    function loadImages(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+    let currentStep = 1;
+    const steps = [
+        { title: "Paso 1: Rostro Reposo", instruction: "Ubica la cara dentro de la guía sin sonreír.", guideClass: "guide-face" },
+        { title: "Paso 2: Sonrisa Completa", instruction: "Sonríe naturalmente mostrando tus dientes dentro del recuadro.", guideClass: "guide-smile" },
+        { title: "Paso 3: Acercamiento a Dientes", instruction: "Acerca la cámara para encuadrar la arcada dental.", guideClass: "guide-teeth" }
+    ];
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const originalImg = document.getElementById('originalImg');
-            const simulatedImg = document.getElementById('simulatedImg');
-            const imgContainer = document.getElementById('imgContainer');
-            const sliderGroup = document.getElementById('sliderGroup');
-            const uploadText = document.getElementById('uploadText');
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('captureCanvas');
+    const guideOverlay = document.getElementById('guideOverlay');
+    const captures = {};
 
-            originalImg.src = e.target.result;
-            simulatedImg.src = e.target.result;
-
-            imgContainer.style.display = 'block';
-            sliderGroup.style.display = 'block';
-            uploadText.innerText = "Cambiar imagen seleccionada";
-        };
-        reader.readAsDataURL(file);
+    async function startCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            video.srcObject = stream;
+        } catch (err) {
+            alert("No se pudo acceder a la cámara. Por favor concede los permisos en el navegador.");
+        }
     }
 
-    function updateComparison(val) {
-        const simulatedImg = document.getElementById('simulatedImg');
-        simulatedImg.style.clipPath = `polygon(0 0, ${val}% 0, ${val}% 100%, 0 100%)`;
+    function captureStep() {
+        if (!video.srcObject) {
+            alert("Primero activa la cámara.");
+            return;
+        }
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        const imgData = canvas.toDataURL('image/png');
+        captures[currentStep] = imgData;
+
+        document.getElementById(`thumb-${currentStep}`).src = imgData;
+
+        if (currentStep < 3) {
+            currentStep++;
+            updateStepUI();
+        } else {
+            alert("¡Capturas completadas! Preparando simulación...");
+        }
     }
+
+    function updateStepUI() {
+        const step = steps[currentStep - 1];
+        document.getElementById('stepTitle').innerText = step.title;
+        document.getElementById('stepInstruction').innerText = step.instruction;
+        guideOverlay.className = `overlay-guide ${step.guideClass}`;
+    }
+
+    window.onload = startCamera;
 </script>
 
 </body>
