@@ -34,23 +34,26 @@ export default async function handler(req, res) {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    version: "89832385657753232fbafb15d5ed1ec15a96887713483984d72d24e1ae670f5e",
+                    // Modelo oficial InstructPix2Pix (Edición de fotos por texto)
+                    version: "30c1d0b916a6f8ef220d6db3f2c303865b101b5a967823ae452c1e458af42a26",
                     input: {
                         image: image,
-                        prompt: "perfect straight white teeth, aligned dental arch, beautiful natural smile, high-end orthodontic outcome, hyperrealistic photorealism",
-                        negative_prompt: "crooked teeth, yellow teeth, missing teeth, extra teeth, deformed lips, artificial look",
-                        prompt_strength: 0.65
+                        prompt: "make the teeth perfectly straight, white, aligned, beautiful smile, high-end orthodontic result",
+                        num_inference_steps: 30,
+                        image_guidance_scale: 1.5,
+                        guidance_scale: 7.5
                     }
                 })
             });
 
             const prediction = await startResponse.json();
 
-            if (!startResponse.ok || prediction.error) {
-                return res.status(500).json({ error: prediction.error || `Error en Replicate (HTTP ${startResponse.status})` });
+            if (!startResponse.ok) {
+                // Captura el detalle exacto del error 422 de Replicate
+                const detail = prediction.detail ? JSON.stringify(prediction.detail) : (prediction.error || `HTTP ${startResponse.status}`);
+                return res.status(500).json({ error: `Replicate Error: ${detail}` });
             }
 
-            // Retorna el ID de inmediato para no agotar el tiempo de espera de Vercel
             return res.status(200).json({ id: prediction.id });
         } catch (err) {
             return res.status(500).json({ error: err.message });
